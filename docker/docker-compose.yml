@@ -1,0 +1,121 @@
+version: '3.8'
+
+services:
+  # MongoDB pour stocker les données temps réel
+  mongo:
+    image: mongo:latest
+    container_name: velib_mongodb
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: admin123
+      MONGO_INITDB_DATABASE: velib_db
+    volumes:
+      - mongo_data:/data/db
+      - ./init-mongo.js:/docker-entrypoint-initdb.d/init-mongo.js:ro
+    networks:
+      - velib_network
+    restart: unless-stopped
+
+  # HDFS NameNode
+  namenode:
+    image: bde2020/hadoop-namenode:2.0.0-hadoop3.2.1-java8
+    container_name: velib_namenode
+    ports:
+      - "9870:9870"
+      - "9000:9000"
+    env_file:
+      - ./hadoop.env
+    volumes:
+      - namenode_data:/hadoop/dfs/name
+      - ./hdfs:/data
+    networks:
+      - velib_network
+    restart: unless-stopped
+
+  # HDFS DataNode
+  datanode:
+    image: bde2020/hadoop-datanode:2.0.0-hadoop3.2.1-java8
+    container_name: velib_datanode
+    ports:
+      - "9864:9864"
+    env_file:
+      - ./hadoop.env
+    volumes:
+      - datanode_data:/hadoop/dfs/data
+    networks:
+      - velib_network
+    depends_on:
+      - namenode
+    restart: unless-stopped
+
+  # Apache Spark Master pour le streaming et batch
+  spark-master:
+    image: bitnami/spark:latest
+    container_name: velib_spark_master
+    environment:
+      - SPARK_MODE=master
+      - SPARK_RPC_AUTHENTICATION_ENABLED=no
+      - SPARK_RPC_ENCRYPTION_ENABLED=no
+      - SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED=no
+      - SPARK_SSL_ENABLED=no
+      - SPARK_MASTER_HOST=spark-master
+    ports:
+      - "8080:8080"
+      - "7077:7077"
+      - "4040:4040"
+    volumes:
+      - ../streaming:/opt/spark-apps/streaming
+      - ../batch:/opt/spark-apps/batch
+      - spark_data:/tmp
+    networks:
+      - velib_network
+    depends_on:
+      - mongo
+      - namenode
+    restart: unless-stopped
+
+  # Spark Worker
+  spark-worker:
+    image: bitnami/spark:latest
+    container_name: velib_spark_worker
+    environment:
+      - SPARK_MODE=worker
+      - SPARK_MASTER_URL=spark://spark-master:7077
+      - SPARK_WORKER_MEMORY=2G
+      - SPARK_WORKER_CORES=2
+    networks:
+      - velib_network
+    depends_on:
+      - spark-master
+    restart: unless-stopped
+
+  # Backend Node.js + Express
+  backend:
+    build: ../backend
+    container_name: velib_backend
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+      - MONGODB_URI=mongodb://admin:admin123@mongo:27017/velib_db?authSource=admin
+      - PORT=3000
+    volumes:
+      - ../backend:/app
+      - /app/node_modules
+    networks:
+      - velib_network
+    depends_on:
+      - mongo
+    restart: unless-stopped
+
+networks:
+  velib_network:
+    driver: bridge
+
+volumes:
+  mongo_data:
+  spark_data:
+  namenode_data:
+  datanode_data:
