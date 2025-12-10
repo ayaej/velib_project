@@ -8,6 +8,7 @@ puis écrit les résultats dans MongoDB
 from __future__ import print_function, unicode_literals
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import *
+from pyspark.sql.functions import col, avg, min, max, count, sum, first, to_date, hour, lag, abs, when, lit, stddev, desc, countDistinct
 from pyspark.sql.types import *
 from pyspark.sql.window import Window
 from pymongo import MongoClient

@@ -2,11 +2,17 @@ import { useState, useEffect } from 'react'
 import './App.css'
 import RealtimeDashboard from './components/RealtimeDashboard'
 import StationTable from './components/StationTable'
-import { fetchStations, fetchStats, fetchCriticalStations } from './services/api'
+import StationIncidents from './components/StationIncidents'
+import BatchDashboard from './components/BatchDashboard'
+import { fetchStations, fetchStats, fetchCriticalStations, getIncidents, getDailyStats, getAggregatedData, getEmptyFullStations } from './services/api'
 
 function App() {
   const [stations, setStations] = useState([])
   const [stats, setStats] = useState(null)
+  const [incidents, setIncidents] = useState([])
+  const [dailyStats, setDailyStats] = useState(null)
+  const [aggregatedData, setAggregatedData] = useState([])
+  const [emptyFullStations, setEmptyFullStations] = useState([])
   const [loading, setLoading] = useState(true)
 
   // TODO: Implémenter le rafraîchissement automatique des données
@@ -24,12 +30,32 @@ function App() {
   const loadData = async () => {
     try {
       setLoading(true)
-      // TODO: Charger les données depuis l'API
-      const stationsData = await fetchStations()
-      const statsData = await fetchStats()
       
-      setStations(stationsData)
-      setStats(statsData)
+      // Charger les données temps réel
+      const stationsResponse = await fetchStations()
+      const statsResponse = await fetchStats()
+      
+      // Extraire les données du format {success: true, data: [...]}
+      setStations(stationsResponse?.data || [])
+      setStats(statsResponse?.data || null)
+      
+      // Charger les données batch (agrégations)
+      try {
+        const incidentsData = await getIncidents()
+        const dailyStatsData = await getDailyStats()
+        const aggregatedDataRes = await getAggregatedData()
+        const emptyFullData = await getEmptyFullStations()
+        
+        setIncidents(incidentsData?.data || [])
+        // daily_stats retourne un tableau avec 1 élément, on prend le premier
+        setDailyStats(dailyStatsData?.data?.[0] || null)
+        setAggregatedData(aggregatedDataRes?.data || [])
+        setEmptyFullStations(emptyFullData?.data || [])
+      } catch (batchError) {
+        console.warn('Batch data not available yet:', batchError)
+        // Pas grave si les données batch ne sont pas encore disponibles
+      }
+      
     } catch (error) {
       console.error('Error loading data:', error)
     } finally {
@@ -48,7 +74,18 @@ function App() {
           <div className="loading">Chargement des données...</div>
         ) : (
           <>
-            <RealtimeDashboard stats={stats} />
+            <RealtimeDashboard stats={stats} dailyStats={dailyStats} />
+            
+            <BatchDashboard 
+              dailyStats={dailyStats}
+              emptyFullStations={emptyFullStations}
+              aggregatedData={aggregatedData}
+            />
+            
+            {incidents && incidents.length > 0 && (
+              <StationIncidents incidents={incidents} />
+            )}
+            
             <StationTable stations={stations} />
           </>
         )}

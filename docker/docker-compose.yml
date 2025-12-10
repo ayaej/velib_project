@@ -1,7 +1,7 @@
 version: '3.8'
 
 services:
-  # MongoDB pour stocker les données temps réel
+  # MongoDB Primary (Node 1)
   mongo:
     image: mongo:6
     container_name: velib_mongodb
@@ -10,12 +10,27 @@ services:
     environment:
       MONGO_INITDB_ROOT_USERNAME: admin
       MONGO_INITDB_ROOT_PASSWORD: admin123
-      MONGO_INITDB_DATABASE: velib_db
     volumes:
       - mongo_data:/data/db
-      - ./init-mongo.js:/docker-entrypoint-initdb.d/init-mongo.js:ro
     networks:
       - velib_network
+    restart: unless-stopped
+
+  # MongoDB Secondary (Node 2)
+  mongo-replica-2:
+    image: mongo:6
+    container_name: velib_mongodb_replica2
+    ports:
+      - "27018:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: admin123
+    volumes:
+      - mongo_replica2_data:/data/db
+    networks:
+      - velib_network
+    depends_on:
+      - mongo
     restart: unless-stopped
 
   # HDFS NameNode
@@ -59,14 +74,15 @@ services:
 
   # Apache Spark Master pour le streaming et batch
   spark-master:
-    image: bde2020/spark-master:latest
+    image: apache/spark:3.5.0
     container_name: velib_spark_master
+    command: /opt/spark/bin/spark-class org.apache.spark.deploy.master.Master
     environment:
       - SPARK_MASTER_HOST=spark-master
       - SPARK_MASTER_PORT=7077
       - SPARK_MASTER_WEBUI_PORT=8080
     ports:
-      - "8080:8080"
+      - "8082:8080"
       - "7077:7077"
       - "4040:4040"
     volumes:
@@ -81,14 +97,15 @@ services:
 
   # Spark Worker
   spark-worker:
-    image: bde2020/spark-worker:latest
+    image: apache/spark:3.5.0
     container_name: velib_spark_worker
+    command: /opt/spark/bin/spark-class org.apache.spark.deploy.worker.Worker spark://spark-master:7077
     environment:
       - SPARK_MASTER=spark://spark-master:7077
       - SPARK_WORKER_CORES=2
       - SPARK_WORKER_MEMORY=2G
     ports:
-      - "8081:8081"
+      - "8083:8081"
     networks:
       - velib_network
     depends_on:
@@ -100,7 +117,7 @@ services:
     build: ../backend
     container_name: velib_backend
     ports:
-      - "3000:3000"
+      - "3001:3000"
     environment:
       - NODE_ENV=development
       - MONGODB_URI=mongodb://admin:admin123@mongo:27017/velib_db?authSource=admin
@@ -112,6 +129,7 @@ services:
       - velib_network
     depends_on:
       - mongo
+      - mongo-replica-2
     restart: unless-stopped
 
 networks:
@@ -120,5 +138,6 @@ networks:
 
 volumes:
   mongo_data:
+  mongo_replica2_data:
   namenode_data:
   datanode_data:

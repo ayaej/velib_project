@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // Configuration de l'URL de base de l'API
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
 
 // Instance axios configurée
 const api = axios.create({
@@ -80,5 +80,10 @@ export const getAggregatedData = async (stationCode = null, limit = 50) => {
   const response = await api.get('/batch/aggregated', { params })
   return response.data
 }
+
+// Aliases for backward compatibility
+export const fetchStations = getStations;
+export const fetchStats = getStats;
+export const fetchCriticalStations = getCriticalStations;
 
 export default api;

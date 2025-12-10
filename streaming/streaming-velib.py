@@ -17,7 +17,13 @@ HDFS_ENABLED = os.getenv('HDFS_ENABLED', 'true').lower() == 'true'
 HDFS_BASE_PATH = 'hdfs://namenode:8020/velib/raw'
 
 def initialize_spark():
-    spark = SparkSession.builder.appName('VelibStreaming').config('spark.mongodb.output.uri', MONGODB_URI + MONGODB_DB + '.' + MONGODB_COLLECTION).config('spark.jars.packages', 'org.mongodb.spark:mongo-spark-connector_2.12:10.2.0').config('spark.hadoop.fs.defaultFS', 'hdfs://namenode:8020').getOrCreate()
+    spark = SparkSession.builder.appName('VelibStreaming') \
+        .config('spark.mongodb.output.uri', MONGODB_URI + MONGODB_DB + '.' + MONGODB_COLLECTION) \
+        .config('spark.jars.packages', 'org.mongodb.spark:mongo-spark-connector_2.12:10.2.0') \
+        .config('spark.hadoop.fs.defaultFS', 'hdfs://namenode:8020') \
+        .config('dfs.client.use.datanode.hostname', 'true') \
+        .config('dfs.datanode.use.datanode.hostname', 'true') \
+        .getOrCreate()
     spark.sparkContext.setLogLevel('WARN')
     return spark
 
@@ -71,16 +77,18 @@ def write_hdfs(df, batch_num):
     
     try:
         current_date = datetime.now().strftime('%Y-%m-%d')
-        hdfs_path = HDFS_BASE_PATH + '/' + current_date + '/batch_' + str(batch_num) + '.json'
+        hdfs_path = HDFS_BASE_PATH + '/' + current_date
         
         print('💾 Archiving to HDFS: ' + hdfs_path)
         
-        # Écrire en JSON dans HDFS
-        df.coalesce(1).write.mode('overwrite').format('json').save(hdfs_path)
+        # Écrire en mode append dans un seul fichier JSON
+        df.write.mode('append').format('json').save(hdfs_path)
         
         print('✅ Archived to HDFS successfully')
     except Exception as e:
-        print('⚠️ HDFS archiving failed (non-blocking): ' + str(e))
+        print('⚠️ HDFS archiving failed: ' + str(e))
+        import traceback
+        traceback.print_exc()
 
 def main():
     if JCDECAUX_API_KEY == 'YOUR_API_KEY_HERE':
