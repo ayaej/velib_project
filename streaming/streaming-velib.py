@@ -15,10 +15,9 @@ from datetime import datetime
 from pymongo import MongoClient
 
 # Configuration de l'API JCDecaux
-JCDECAUX_API_KEY = os.getenv('JCDECAUX_API_KEY', 'YOUR_API_KEY_HERE')  # TODO: Remplacer par votre clé API
-JCDECAUX_API_URL = f"https://api.jcdecaux.com/vls/v3/stations?apiKey={JCDECAUX_API_KEY}"
-# Alternative pour Paris uniquement:
-# JCDECAUX_API_URL = f"https://api.jcdecaux.com/vls/v3/stations?contract=paris&apiKey={JCDECAUX_API_KEY}"
+JCDECAUX_API_KEY = os.getenv('JCDECAUX_API_KEY', '2819f955f8f63dff63f10da9b3f02a088c8187c4')
+JCDECAUX_CONTRACT = os.getenv('JCDECAUX_CONTRACT', 'lyon')  # Using Lyon (Vélo'V)
+JCDECAUX_API_URL = f"https://api.jcdecaux.com/vls/v3/stations?contract={JCDECAUX_CONTRACT}&apiKey={JCDECAUX_API_KEY}"
 
 # Configuration MongoDB
 MONGODB_URI = "mongodb://admin:admin123@mongo:27017/"
