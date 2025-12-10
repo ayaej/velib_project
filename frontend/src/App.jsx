@@ -41,7 +41,6 @@ function App() {
     <div className="App">
       <header className="app-header">
         <h1>🚴 Vélib Dashboard - Temps Réel</h1>
-        <p>Pipeline Big Data : API → Spark → MongoDB → React</p>
       </header>
 
       <main className="app-main">

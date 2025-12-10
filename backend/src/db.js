@@ -1,9 +1,8 @@
 const { MongoClient } = require('mongodb');
 
-// Configuration
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://admin:admin123@localhost:27017/velib_db?authSource=admin';
+// Configuration MongoDB
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://admin:admin123@mongo:27017/velib_db?authSource=admin';
 const DB_NAME = 'velib_db';
-const COLLECTION_NAME = 'stations';
 
 let client = null;
 let db = null;
@@ -13,30 +12,30 @@ let db = null;
  */
 async function connectDB() {
   try {
-    if (client && client.topology && client.topology.isConnected()) {
-      console.log('MongoDB already connected');
-      return db;
-    }
-
+    console.log('🔌 Connecting to MongoDB...');
+    console.log(`   URI: ${MONGODB_URI.replace(/\/\/.*:.*@/, '//***:***@')}`);
+    
     client = new MongoClient(MONGODB_URI, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
-      maxPoolSize: 10,
       serverSelectionTimeoutMS: 5000,
-      socketTimeoutMS: 45000,
+      connectTimeoutMS: 10000,
     });
-
+    
     await client.connect();
+    
+    // Vérifier la connexion
+    await client.db(DB_NAME).command({ ping: 1 });
+    
     db = client.db(DB_NAME);
     
-    console.log(`Connected to MongoDB database: ${DB_NAME}`);
+    console.log('✅ MongoDB connected successfully!');
+    console.log(`   Database: ${DB_NAME}`);
     
     // Créer les index si nécessaire
     await createIndexes();
     
     return db;
   } catch (error) {
-    console.error('MongoDB connection error:', error);
+    console.error('❌ MongoDB connection error:', error.message);
     throw error;
   }
 }
@@ -46,36 +45,35 @@ async function connectDB() {
  */
 async function createIndexes() {
   try {
-    const collection = db.collection(COLLECTION_NAME);
+    const stationsCollection = db.collection('stations');
     
-    // TODO: Créer les index nécessaires
-    // Exemple: index sur stationCode, timestamp, etc.
-    await collection.createIndex({ stationCode: 1 });
-    await collection.createIndex({ timestamp: -1 });
-    await collection.createIndex({ name: 1 });
+    // Index sur stationCode (unique)
+    await stationsCollection.createIndex({ stationCode: 1 }, { unique: true });
     
-    console.log('✅ Database indexes created');
+    // Index sur timestamp (pour les requêtes temporelles)
+    await stationsCollection.createIndex({ timestamp: -1 });
+    
+    // Index sur name (pour la recherche)
+    await stationsCollection.createIndex({ name: 1 });
+    
+    console.log('✅ Indexes created successfully');
   } catch (error) {
-    console.error('Error creating indexes:', error);
+    if (error.code === 11000) {
+      console.log('ℹ️  Indexes already exist');
+    } else {
+      console.warn('⚠️  Error creating indexes:', error.message);
+    }
   }
 }
 
 /**
- * Récupérer l'instance de la base de données
+ * Obtenir la connexion à la base de données
  */
 function getDB() {
   if (!db) {
-    throw new Error('Database not initialized. Call connectDB first.');
+    throw new Error('Database not connected. Call connectDB() first.');
   }
   return db;
-}
-
-/**
- * Récupérer la collection des stations
- */
-function getStationsCollection() {
-  const database = getDB();
-  return database.collection(COLLECTION_NAME);
 }
 
 /**
@@ -84,13 +82,12 @@ function getStationsCollection() {
 async function closeDB() {
   if (client) {
     await client.close();
-    console.log('MongoDB connection closed');
+    console.log('✅ MongoDB connection closed');
   }
 }
 
 module.exports = {
   connectDB,
   getDB,
-  getStationsCollection,
   closeDB
 };

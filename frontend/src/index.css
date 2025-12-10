@@ -1,16 +1,41 @@
 :root {
+  /* Palette Gris-Violet */
+  --primary: #8b7fa8;
+  --primary-dark: #6c6387;
+  --primary-darker: #574a6b;
+  --primary-light: #a59bb5;
+  --primary-lighter: #d5cfe3;
+  
+  --secondary: #4a4458;
+  --secondary-light: #78757f;
+  
+  --bg-primary: #f9f8fb;
+  --bg-secondary: #eeebf5;
+  --bg-tertiary: #e8e4f0;
+  
+  --text-primary: #3d3448;
+  --text-secondary: #6c6387;
+  --text-muted: #a59bb5;
+  
+  --border: #e0dce8;
+  --shadow: rgba(108, 99, 135, 0.15);
+  
   font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
   font-weight: 400;
 
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
+  color-scheme: light;
+  color: var(--text-primary);
+  background-color: var(--bg-primary);
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
 }
 
 body {
@@ -19,9 +44,89 @@ body {
   place-items: center;
   min-width: 320px;
   min-height: 100vh;
+  background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 50%, var(--bg-tertiary) 100%);
+}
+
+h1 {
+  font-size: 3.2em;
+  line-height: 1.1;
+  color: var(--text-primary);
+}
+
+h2 {
+  color: var(--text-secondary);
+}
+
+button {
+  border-radius: 8px;
+  border: 2px solid var(--border);
+  padding: 0.6em 1.2em;
+  font-size: 1em;
+  font-weight: 500;
+  font-family: inherit;
+  background-color: white;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: all 0.25s;
+}
+
+button:hover {
+  border-color: var(--primary);
+  background: var(--primary-lighter);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px var(--shadow);
+}
+
+button:focus,
+button:focus-visible {
+  outline: 4px auto var(--primary-light);
+}
+
+a {
+  color: var(--primary);
+  text-decoration: inherit;
+  transition: color 0.25s;
+}
+
+a:hover {
+  color: var(--primary-dark);
 }
 
 #root {
   width: 100%;
-  margin: 0;
+  margin: 0 auto;
+  padding: 0;
+}
+
+/* Scrollbar personnalisée */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-secondary);
+  border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--primary-light);
+  border-radius: 5px;
+  transition: background 0.3s;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--primary);
+}
+
+/* Selection */
+::selection {
+  background: var(--primary-lighter);
+  color: var(--primary-darker);
+}
+
+/* Focus visible pour accessibilité */
+*:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
 }

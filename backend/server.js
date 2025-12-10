@@ -1,62 +1,78 @@
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
-const morgan = require('morgan');
 require('dotenv').config();
 
-// Import des modules internes
-const { connectDB, getDB } = require('./src/db');
-const routes = require('./src/routes');
+const { connectDB, closeDB } = require('./src/db');
+const apiRoutes = require('./src/routes');
 
-// Configuration
-const PORT = process.env.PORT || 3000;
 const app = express();
+const PORT = process.env.PORT || 3000;
 
 // Middlewares
 app.use(helmet());
 app.use(cors());
-app.use(morgan('dev'));
 app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
 
-// Routes
+// Logging middleware
+app.use((req, res, next) => {
+  console.log(`${req.method} ${req.path}`);
+  next();
+});
+
+// Health check
 app.get('/health', (req, res) => {
   res.json({ 
-    status: 'OK', 
-    message: 'Vélib Backend API is running',
+    status: 'ok', 
+    message: 'Velib Backend API is running',
     timestamp: new Date().toISOString()
   });
 });
 
-// Routes API
-app.use('/api', routes);
+// API Routes
+app.use('/api', apiRoutes);
 
-// Gestion des erreurs 404
+// 404 handler
 app.use((req, res) => {
-  res.status(404).json({ error: 'Route not found' });
-});
-
-// Gestion des erreurs globales
-app.use((err, req, res, next) => {
-  console.error('Error:', err);
-  res.status(500).json({ 
-    error: 'Internal server error',
-    message: err.message 
+  res.status(404).json({ 
+    success: false, 
+    error: 'Route not found' 
   });
 });
 
-// Démarrage du serveur
+// Error handler
+app.use((err, req, res, next) => {
+  console.error('Error:', err.message);
+  res.status(500).json({ 
+    success: false, 
+    error: 'Internal server error' 
+  });
+});
+
+// Start server
 async function startServer() {
   try {
-    // Connexion à MongoDB
+    // Connect to MongoDB
     await connectDB();
-    console.log('✅ MongoDB connected successfully');
-
-    // Démarrage du serveur Express
-    app.listen(PORT, () => {
-      console.log(`🚀 Backend server running on port ${PORT}`);
-      console.log(`📍 Health check: http://localhost:${PORT}/health`);
-      console.log(`📍 API endpoints: http://localhost:${PORT}/api`);
+    
+    // Start Express server
+    app.listen(PORT, '0.0.0.0', () => {
+      console.log('');
+      console.log('='.repeat(50));
+      console.log('🚀 Velib Backend API Server Started');
+      console.log('='.repeat(50));
+      console.log(`   Port: ${PORT}`);
+      console.log(`   Environment: ${process.env.NODE_ENV || 'development'}`);
+      console.log('');
+      console.log('📡 Available endpoints:');
+      console.log('   GET  /health');
+      console.log('   GET  /api/stations');
+      console.log('   GET  /api/stations/top');
+      console.log('   GET  /api/stations/critical');
+      console.log('   GET  /api/stations/:id');
+      console.log('   GET  /api/stats');
+      console.log('='.repeat(50));
+      console.log('');
     });
   } catch (error) {
     console.error('❌ Failed to start server:', error);
@@ -64,16 +80,18 @@ async function startServer() {
   }
 }
 
-// Gestion de l'arrêt propre
-process.on('SIGTERM', () => {
-  console.log('SIGTERM received, shutting down gracefully...');
+// Graceful shutdown
+process.on('SIGTERM', async () => {
+  console.log('SIGTERM received, closing server...');
+  await closeDB();
   process.exit(0);
 });
 
-process.on('SIGINT', () => {
-  console.log('SIGINT received, shutting down gracefully...');
+process.on('SIGINT', async () => {
+  console.log('SIGINT received, closing server...');
+  await closeDB();
   process.exit(0);
 });
 
-// Démarrage
+// Start the server
 startServer();

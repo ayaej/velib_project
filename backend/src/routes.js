@@ -1,30 +1,26 @@
 const express = require('express');
 const router = express.Router();
-const { getStationsCollection } = require('./db');
+const { getDB } = require('./db');
 
 /**
  * GET /api/stations
- * Récupérer toutes les stations (avec pagination)
+ * Récupérer toutes les stations avec pagination
  */
 router.get('/stations', async (req, res) => {
   try {
-    const collection = getStationsCollection();
-    
-    // Paramètres de pagination
+    const db = getDB();
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 50;
     const skip = (page - 1) * limit;
 
-    // TODO: Implémenter la logique de récupération
-    // Récupérer les données les plus récentes de chaque station
-    const stations = await collection
+    const stations = await db.collection('stations')
       .find({})
-      .sort({ timestamp: -1 })
+      .sort({ name: 1 })
       .skip(skip)
       .limit(limit)
       .toArray();
 
-    const total = await collection.countDocuments({});
+    const total = await db.collection('stations').countDocuments();
 
     res.json({
       success: true,
@@ -37,12 +33,7 @@ router.get('/stations', async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Error fetching stations:', error);
-    res.status(500).json({ 
-      success: false, 
-      error: 'Failed to fetch stations',
-      message: error.message 
-    });
+    res.status(500).json({ success: false, error: error.message });
   }
 });
 
@@ -52,46 +43,33 @@ router.get('/stations', async (req, res) => {
  */
 router.get('/stations/top', async (req, res) => {
   try {
-    const collection = getStationsCollection();
+    const db = getDB();
     const limit = parseInt(req.query.limit) || 10;
 
-    // TODO: Implémenter la logique pour trouver les top stations
-    // Agréger les données pour trouver les stations les plus fournies
-    const topStations = await collection
-      .aggregate([
-        // Pipeline d'agrégation à compléter
-        { $sort: { numBikesAvailable: -1 } },
-        { $limit: limit }
-      ])
+    const stations = await db.collection('stations')
+      .find({ isInstalled: true })
+      .sort({ numBikesAvailable: -1 })
+      .limit(limit)
       .toArray();
 
-    res.json({
-      success: true,
-      data: topStations
-    });
+    res.json({ success: true, data: stations });
   } catch (error) {
-    console.error('Error fetching top stations:', error);
-    res.status(500).json({ 
-      success: false, 
-      error: 'Failed to fetch top stations',
-      message: error.message 
-    });
+    res.status(500).json({ success: false, error: error.message });
   }
 });
 
 /**
  * GET /api/stations/critical
- * Récupérer les stations critiques (peu de vélos ou peu de places)
+ * Récupérer les stations critiques (peu de vélos ou places)
  */
 router.get('/stations/critical', async (req, res) => {
   try {
-    const collection = getStationsCollection();
+    const db = getDB();
     const threshold = parseInt(req.query.threshold) || 3;
 
-    // TODO: Implémenter la logique pour identifier les stations critiques
-    // Stations avec moins de X vélos ou moins de X places disponibles
-    const criticalStations = await collection
+    const stations = await db.collection('stations')
       .find({
+        isInstalled: true,
         $or: [
           { numBikesAvailable: { $lte: threshold } },
           { numDocksAvailable: { $lte: threshold } }
@@ -100,32 +78,23 @@ router.get('/stations/critical', async (req, res) => {
       .sort({ numBikesAvailable: 1 })
       .toArray();
 
-    res.json({
-      success: true,
-      data: criticalStations,
-      threshold
-    });
+    res.json({ success: true, data: stations });
   } catch (error) {
-    console.error('Error fetching critical stations:', error);
-    res.status(500).json({ 
-      success: false, 
-      error: 'Failed to fetch critical stations',
-      message: error.message 
-    });
+    res.status(500).json({ success: false, error: error.message });
   }
 });
 
 /**
  * GET /api/stations/:id
- * Récupérer une station spécifique par son ID
+ * Récupérer une station spécifique
  */
 router.get('/stations/:id', async (req, res) => {
   try {
-    const collection = getStationsCollection();
-    const stationId = req.params.id;
+    const db = getDB();
+    const stationCode = req.params.id;
 
-    // TODO: Implémenter la récupération d'une station spécifique
-    const station = await collection.findOne({ stationCode: stationId });
+    const station = await db.collection('stations')
+      .findOne({ stationCode: stationCode });
 
     if (!station) {
       return res.status(404).json({ 
@@ -134,56 +103,182 @@ router.get('/stations/:id', async (req, res) => {
       });
     }
 
-    res.json({
-      success: true,
-      data: station
-    });
+    res.json({ success: true, data: station });
   } catch (error) {
-    console.error('Error fetching station:', error);
-    res.status(500).json({ 
-      success: false, 
-      error: 'Failed to fetch station',
-      message: error.message 
-    });
+    res.status(500).json({ success: false, error: error.message });
   }
 });
 
 /**
  * GET /api/stats
- * Récupérer des statistiques globales
+ * Récupérer les statistiques globales
  */
 router.get('/stats', async (req, res) => {
   try {
-    const collection = getStationsCollection();
+    const db = getDB();
 
-    // TODO: Calculer des statistiques globales
-    // - Nombre total de stations
-    // - Total de vélos disponibles
-    // - Total de places disponibles
-    // - Taux d'occupation moyen
-    
-    const stats = await collection.aggregate([
+    const stats = await db.collection('stations').aggregate([
+      {
+        $match: { isInstalled: true }
+      },
       {
         $group: {
           _id: null,
           totalStations: { $sum: 1 },
           totalBikes: { $sum: '$numBikesAvailable' },
           totalDocks: { $sum: '$numDocksAvailable' },
-          avgOccupancy: { $avg: '$capacity' }
+          totalCapacity: { $sum: '$capacity' },
+          avgBikesPerStation: { $avg: '$numBikesAvailable' },
+          avgDocksPerStation: { $avg: '$numDocksAvailable' }
         }
       }
     ]).toArray();
 
+    if (stats.length === 0) {
+      return res.json({
+        success: true,
+        data: {
+          totalStations: 0,
+          totalBikes: 0,
+          totalDocks: 0,
+          avgOccupancy: 0
+        }
+      });
+    }
+
+    const result = stats[0];
+    const avgOccupancy = result.totalCapacity > 0 
+      ? (result.totalBikes / result.totalCapacity) * 100 
+      : 0;
+
     res.json({
       success: true,
-      data: stats[0] || {}
+      data: {
+        totalStations: result.totalStations,
+        totalBikes: result.totalBikes,
+        totalDocks: result.totalDocks,
+        avgOccupancy: Math.round(avgOccupancy * 10) / 10,
+        avgBikesPerStation: Math.round(result.avgBikesPerStation * 10) / 10,
+        avgDocksPerStation: Math.round(result.avgDocksPerStation * 10) / 10
+      }
     });
   } catch (error) {
-    console.error('Error fetching stats:', error);
-    res.status(500).json({ 
-      success: false, 
-      error: 'Failed to fetch stats',
-      message: error.message 
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Routes pour les données batch
+
+/**
+ * GET /api/batch/incidents
+ * Récupère tous les incidents détectés par le batch
+ */
+router.get('/batch/incidents', async (req, res) => {
+  try {
+    const db = getDB();
+    const incidents = await db.collection('station_incidents')
+      .find({})
+      .sort({ date: -1, incidentCount: -1 })
+      .limit(100)
+      .toArray();
+    
+    res.json({
+      success: true,
+      data: incidents,
+      count: incidents.length
+    });
+  } catch (error) {
+    console.error('Error fetching incidents:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch incidents'
+    });
+  }
+});
+
+/**
+ * GET /api/batch/empty-full
+ * Récupère les stations fréquemment vides ou pleines
+ */
+router.get('/batch/empty-full', async (req, res) => {
+  try {
+    const db = getDB();
+    const emptyFullStations = await db.collection('stations_empty_full_tracking')
+      .find({})
+      .sort({ emptyPercentage: -1 })
+      .limit(100)
+      .toArray();
+    
+    res.json({
+      success: true,
+      data: emptyFullStations,
+      count: emptyFullStations.length
+    });
+  } catch (error) {
+    console.error('Error fetching empty-full stations:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch empty-full stations'
+    });
+  }
+});
+
+/**
+ * GET /api/batch/daily-stats
+ * Récupère les statistiques globales quotidiennes
+ */
+router.get('/batch/daily-stats', async (req, res) => {
+  try {
+    const db = getDB();
+    const { date } = req.query;
+    
+    const query = date ? { date } : {};
+    const dailyStats = await db.collection('daily_stats')
+      .find(query)
+      .sort({ _id: -1 })
+      .limit(30)
+      .toArray();
+    
+    res.json({
+      success: true,
+      data: dailyStats,
+      count: dailyStats.length
+    });
+  } catch (error) {
+    console.error('Error fetching daily stats:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch daily stats'
+    });
+  }
+});
+
+/**
+ * GET /api/batch/aggregated
+ * Récupère les données agrégées par station
+ */
+router.get('/batch/aggregated', async (req, res) => {
+  try {
+    const db = getDB();
+    const { stationCode, limit = 50 } = req.query;
+    
+    const query = stationCode ? { stationCode } : {};
+    const aggregated = await db.collection('stations_aggregated')
+      .find(query)
+      .sort({ date: -1 })
+      .limit(parseInt(limit))
+      .toArray();
+    
+    res.json({
+      success: true,
+      data: aggregated,
+      count: aggregated.length
+    });
+  } catch (error) {
+    console.error('Error fetching aggregated data:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch aggregated data'
     });
   }
 });
