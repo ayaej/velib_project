@@ -48,6 +48,10 @@ def transform(record):
             'capacity': int(total.get('capacity', 0)),
             'numBikesAvailable': int(avail.get('bikes', 0)),
             'numDocksAvailable': int(avail.get('stands', 0)),
+            'numMechanicalBikes': int(avail.get('mechanicalBikes', 0)),
+            'numElectricBikes': int(avail.get('electricalBikes', 0)),
+            'numElectricInternalBatteryBikes': int(avail.get('electricalInternalBatteryBikes', 0)),
+            'numElectricRemovableBatteryBikes': int(avail.get('electricalRemovableBatteryBikes', 0)),
             'isInstalled': record.get('status') == 'OPEN',
             'coordinates': [float(pos.get('longitude', 0)), float(pos.get('latitude', 0))],
             'timestamp': datetime.now().isoformat()

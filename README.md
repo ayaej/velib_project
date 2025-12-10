@@ -17,7 +17,9 @@ Pipeline Big Data temps réel pour le suivi des stations Vélib à **Lyon** (421
 ✅ **Stockage distribué** - HDFS (Hadoop) pour données brutes  
 ✅ **Base de données NoSQL** - MongoDB pour données temps réel  
 ✅ **API REST** - Backend Node.js + Express  
-✅ **Dashboard interactif** - Frontend React + Vite  
+✅ **Dashboard interactif** - Frontend React + Vite avec design raffiné  
+✅ **Recherche de stations** - Recherche en temps réel avec auto-centrage sur la carte  
+✅ **Carte interactive** - Leaflet avec marqueurs dynamiques et popups détaillés  
 ✅ **Infrastructure complète** - Docker Compose (plug & play)  
 
 ---
@@ -229,9 +231,33 @@ curl "https://api.jcdecaux.com/vls/v3/stations?contract=lyon&apiKey=VOTRE_CLE"
 
 ---
 
-## 📝 TODO / Roadmap
+## ✨ Nouvelles Fonctionnalités
 
-- [ ] Ajouter carte interactive avec React Leaflet
+### 🔍 Recherche de Stations
+- **Recherche instantanée** : Trouvez des stations par nom ou code
+- **Auto-centrage sur carte** : La carte se centre automatiquement sur la station sélectionnée
+- **Infos détaillées** : Panneau d'informations avec disponibilité en temps réel
+- **Vélos mécaniques/électriques** : Visualisation séparée des types de vélos
+
+### 🎨 Design Raffiné
+- **Palette de couleurs premium** : Indigo (#4F46E5) et Émeraude (#059669)
+- **8 dégradés sophistiqués** : Animations fluides avec cubic-bezier
+- **Ombres colorées** : Effets 3D sur les cartes et boutons
+- **Responsive design** : Interface adaptée mobile/tablette/desktop
+
+### �️ Carte Interactive
+- **421 stations de Lyon** : Toutes les stations Vélib affichées
+- **Marqueurs dynamiques** : Couleurs selon disponibilité (vert/orange/rouge)
+- **Zoom automatique** : Zoom à 17 lors de la sélection d'une station
+- **Légende claire** : Indicateurs de disponibilité et types de vélos
+
+---
+
+## �📝 TODO / Roadmap
+
+- [x] ~~Ajouter carte interactive avec React Leaflet~~ ✅ **Fait**
+- [x] ~~Recherche de stations~~ ✅ **Fait**
+- [x] ~~Design raffiné avec palette de couleurs premium~~ ✅ **Fait**
 - [ ] Implémenter graphiques temps réel (Recharts)
 - [ ] Ajouter WebSocket pour push notifications
 - [ ] Implémenter tests unitaires et d'intégration
