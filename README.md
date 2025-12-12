@@ -231,7 +231,7 @@ curl "https://api.jcdecaux.com/vls/v3/stations?contract=lyon&apiKey=VOTRE_CLE"
 
 ---
 
-## ✨ Nouvelles Fonctionnalités
+## ✨ Fonctionnalités
 
 ### 🔍 Recherche de Stations
 - **Recherche instantanée** : Trouvez des stations par nom ou code
@@ -266,27 +266,5 @@ curl "https://api.jcdecaux.com/vls/v3/stations?contract=lyon&apiKey=VOTRE_CLE"
 - [ ] Machine Learning pour prédiction de disponibilité
 - [ ] Documentation API avec Swagger/OpenAPI
 
----
-
-## 📄 Licence
-
-MIT License - Voir le fichier LICENSE pour plus de détails
-
----
-
-## 👥 Équipe
-
-**Big Data Team - IPSSI**
-
----
-
-## 🙏 Remerciements
-
-- JCDecaux pour l'API Open Data
-- Apache Spark Community
-- MongoDB Community
-- Open Source Community
-
----
 
 **🚀 Prêt à démarrer ? Consultez [GETTING_STARTED.md](GETTING_STARTED.md) !**
